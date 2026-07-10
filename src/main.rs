@@ -62,7 +62,7 @@ async fn main() {
 
     let database = Arc::new(
 
-        DatabaseManager::new("nekotopia.db")
+        DatabaseManager::new("/app/data/nekotopia.db")
     );
 
     let handler = Handler {
