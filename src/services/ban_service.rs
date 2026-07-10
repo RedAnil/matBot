@@ -18,9 +18,9 @@ impl BanService {
             let embed = CreateEmbed::new()
                 .title("You have been automatically banned.")
                 .description("The bot has automatically banned you for talking in the no talk channel\
-                        \nIf you get your account back (or where just too curious) and want to rejoin back: https://discord.gg/nekotopia\
+                        \nIf you get your account back (or were just too curious) and want to rejoin back: https://discord.gg/nekotopia\
                         \n***Give it a second and you should be unbanned, bot is slow.***\
-                        \n-# it has to also mark you as banned, it keeps track of how many times this happends.");
+                        \n-# it has to also mark you as banned, it keeps track of how many times it has banned you.");
             let builder = CreateMessage::new().embed(embed);
             if let Err(why) = msg.author.dm(&ctx.http, builder).await
             {
