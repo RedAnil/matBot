@@ -1,4 +1,4 @@
-use rusqlite::{named_params, Connection, OptionalExtension};
+use rusqlite::{named_params, Connection};
 use std::sync::Mutex;
 
 pub(crate) struct DatabaseManager{
@@ -7,11 +7,10 @@ pub(crate) struct DatabaseManager{
 }
 
 
-pub (crate) struct BannedUser{
-    pub(crate) user_id: u64,
-    pub(crate) has_appealed: bool,
-    pub(crate) strikes: u8
-}
+// pub (crate) struct BannedUser{
+//     pub(crate) user_id: u64,
+//     pub(crate) banned_times: u8
+// }
 
 impl DatabaseManager {
 
@@ -20,8 +19,7 @@ impl DatabaseManager {
 
         conn.execute("CREATE TABLE IF NOT EXISTS banned_users (\
         user_id INTEGER PRIMARY KEY, \
-        has_appealed BOOLEAN NOT NULL, \
-        strikes INTEGER NOT NULL\
+        banned_times BOOLEAN NOT NULL \
         )", ()).expect("Could not create table");
 
 
@@ -35,9 +33,9 @@ impl DatabaseManager {
         let conn = self.conn.lock().unwrap();
 
         let mut stmt = conn.prepare(
-            "INSERT INTO banned_users(user_id, has_appealed, strikes) \
-        VALUES (:id, false, 0)\
-        ON CONFLICT(user_id) DO UPDATE SET strikes = 0, has_appealed = false"
+            "INSERT INTO banned_users(user_id, banned_times) \
+        VALUES (:id, 0)\
+        ON CONFLICT(user_id) DO UPDATE SET banned_times = banned_times + 1"
         ).unwrap();
         stmt.execute(
             named_params! {
@@ -46,32 +44,30 @@ impl DatabaseManager {
         ).expect("Could not add user");
     }
 
-    pub(crate) fn get_banned_user(&self, user_id: u64) -> rusqlite::Result<Option<BannedUser>>{
-        let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT user_id, has_appealed, strikes FROM banned_users WHERE user_id = :id")?;
+    // pub(crate) fn get_banned_user(&self, user_id: u64) -> rusqlite::Result<Option<BannedUser>>{
+    //     let conn = self.conn.lock().unwrap();
+    //     let mut stmt = conn.prepare(
+    //         "SELECT user_id, banned_times FROM banned_users WHERE user_id = :id")?;
+    //
+    //     stmt.query_one(named_params! {":id": user_id as i64}, |row| {
+    //         Ok(BannedUser{
+    //             user_id: row.get::<_, i64>(0)? as u64,
+    //             banned_times: row.get(1)?,
+    //         })
+    //     }).optional()
+    // }
 
-        stmt.query_one(named_params! {":id": user_id as i64}, |row| {
-            Ok(BannedUser{
-                user_id: row.get::<_, i64>(0)? as u64,
-                has_appealed: row.get(1)?,
-                strikes: row.get(2)?,
-            })
-        }).optional()
-    }
-
-    pub(crate) fn update_user_stats(&self, user: BannedUser){
-        let conn = self.conn.lock().unwrap();
-
-        let mut stmt = conn.prepare(
-            "UPDATE banned_users SET has_appealed = :has_appealed, strikes = :strikes WHERE user_id = :id"
-        ).unwrap();
-        stmt.execute(
-            named_params! {
-                ":id": user.user_id as i64,
-                ":has_appealed": user.has_appealed,
-                ":strikes": user.strikes
-            }
-        ).expect("Could not add user");
-    }
+    // pub(crate) fn update_user_stats(&self, user: BannedUser){
+    //     let conn = self.conn.lock().unwrap();
+    //
+    //     let mut stmt = conn.prepare(
+    //         "UPDATE banned_users SET has_appealed = :banned_times WHERE user_id = :id"
+    //     ).unwrap();
+    //     stmt.execute(
+    //         named_params! {
+    //             ":id": user.user_id as i64,
+    //             ":banned_times": user.banned_times
+    //         }
+    //     ).expect("Could not add user");
+    // }
 }

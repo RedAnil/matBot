@@ -24,11 +24,6 @@ impl EventHandler for Handler {
             return;
         }
 
-        if msg.guild_id.is_none(){
-            self.ban_service.handle_appeal(ctx, msg).await;
-            return;
-        }
-
         if msg.channel_id.get() == self.ban_channel_id{
             self.ban_service.handle_ban(ctx, msg).await;
             return;
@@ -55,11 +50,6 @@ async fn main() {
         .parse()
         .expect("BAN_CHANNEL must be unsigned 64");
 
-    let tickets_channel_id: u64 = env::var("TICKET_CHANNEL")
-        .expect("Expected a ticket channel id")
-        .parse()
-        .expect("TICKET_CHANNEL must be unsigned 64");
-
     let database = Arc::new(
 
         DatabaseManager::new("/app/data/nekotopia.db")
@@ -67,7 +57,7 @@ async fn main() {
 
     let handler = Handler {
         ban_channel_id,
-        ban_service: BanService::new(Arc::clone(&database), tickets_channel_id)
+        ban_service: BanService::new(Arc::clone(&database))
     };
 
     let mut client = Client::builder(&token, intents).event_handler(handler).await.expect("Err creating client");
