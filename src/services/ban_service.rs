@@ -41,15 +41,9 @@ impl BanService {
             } else {
                 self.database.add_banned_user(msg.author.id.get());
                 if let Err(_why) = guild_id.unban(&ctx.http, msg.author.id).await{
-                    let error_message = msg.channel_id.say(&ctx.http, format!("Could not unban user {}({})\n-# Check the logs or something.", msg.author.name, msg.author.id.get())).await;
-                    match error_message {
-                        Err(e) => println!("Error in sending message {}", e),
-                        Ok(new_message) =>{
-                            let three_seconds = time::Duration::from_secs(3);
-                            thread::sleep(three_seconds);
-                            new_message.delete(&ctx.http).await.expect("Couldnt even delete my own message bro");
-                        }
-                    }
+                  msg.channel_id.say(&ctx.http, format!("Could not unban user {}({})\n-# Check the logs or something.", msg.author.name, msg.author.id.get()))
+                      .await
+                      .expect("Error in sending unban message");
                 }
             }
         }
