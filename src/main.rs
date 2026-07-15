@@ -9,11 +9,15 @@ use serenity::model::channel::Message;
 use serenity::prelude::*;
 
 use managers::database_manager::DatabaseManager;
+use crate::managers::ban_manager::BanManager;
+use crate::managers::emoji_manager::EmojiManager;
 use crate::services::ban_service::BanService;
+use crate::services::emoji_service::EmojiService;
 
 struct Handler{
     ban_channel_id: u64,
     ban_service: BanService,
+    emoji_service: EmojiService,
 }
 
 
@@ -27,7 +31,17 @@ impl EventHandler for Handler {
         if msg.channel_id.get() == self.ban_channel_id{
             self.ban_service.handle_ban(ctx, msg).await;
             return;
+        }
 
+        if self.emoji_service.contains_emoji(&msg) {
+            self.emoji_service.save_emoji_usages(&msg);
+        }
+
+        let mentions_bot = msg.mentions_me(&ctx.http).await.unwrap();
+        if mentions_bot {
+            if let Err(why) = msg.reply(&ctx.http, "Im Mat").await{
+                println!("{}",why);
+            }
         }
     }
 
@@ -40,25 +54,29 @@ async fn main() {
     dotenv().ok();
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
-    let intents = GatewayIntents::GUILD_MESSAGES
-    | GatewayIntents::DIRECT_MESSAGES
-    | GatewayIntents::MESSAGE_CONTENT
-    | GatewayIntents::GUILD_MODERATION;
-
     let ban_channel_id: u64 = env::var("BAN_CHANNEL")
         .expect("Expected a ban channel id")
         .parse()
         .expect("BAN_CHANNEL must be unsigned 64");
 
     let database = Arc::new(
-
+        // /app/data/nekotopia.db
         DatabaseManager::new("/app/data/nekotopia.db")
     );
 
+    let ban_manager = BanManager::new(Arc::clone(&database));
+    let emoji_manager = EmojiManager::new(Arc::clone(&database));
+
     let handler = Handler {
         ban_channel_id,
-        ban_service: BanService::new(Arc::clone(&database))
+        ban_service: BanService::new(ban_manager),
+        emoji_service: EmojiService::new(emoji_manager),
     };
+
+    let intents = GatewayIntents::GUILD_MESSAGES
+        | GatewayIntents::DIRECT_MESSAGES
+        | GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::GUILD_MODERATION;
 
     let mut client = Client::builder(&token, intents).event_handler(handler).await.expect("Err creating client");
 
