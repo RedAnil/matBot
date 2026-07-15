@@ -1,15 +1,14 @@
-use crate::managers::database_manager::DatabaseManager;
 use serenity::all::{Context, CreateEmbed, CreateMessage, Message};
-use std::sync::Arc;
 use std::{thread, time};
+use crate::managers::ban_manager::BanManager;
 
 pub(crate) struct BanService{
-    database: Arc<DatabaseManager>
+    manager: BanManager
 }
 
 impl BanService {
-    pub(crate) fn new(database: Arc<DatabaseManager>) -> BanService{
-        Self{database}
+    pub(crate) fn new(manager: BanManager) -> BanService{
+        Self{manager}
     }
     pub(crate) async fn handle_ban(&self, ctx: Context, msg: Message){
         if let Some(guild_id) = msg.guild_id
@@ -39,7 +38,7 @@ impl BanService {
                     }
                 }
             } else {
-                self.database.add_banned_user(msg.author.id.get());
+                self.manager.add_banned_user(msg.author.id.get());
                 if let Err(_why) = guild_id.unban(&ctx.http, msg.author.id).await{
                   msg.channel_id.say(&ctx.http, format!("Could not unban user {}({})\n-# Check the logs or something.", msg.author.name, msg.author.id.get()))
                       .await
